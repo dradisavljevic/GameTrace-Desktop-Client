@@ -8,6 +8,7 @@ Client would search for a specific process name and then look for certain files 
 
 Information about video game and processes is stored as XML node in the form of:
 
+```xml
 <game>
 	<rule>
 		<proc>ProcessName</proc>
@@ -17,6 +18,7 @@ Information about video game and processes is stored as XML node in the form of:
 		<absent>MissingProcCmdLineArg</absent>
 	</rule>
 </game>
+```
 
 Tags within this XML node are as follow:
 
@@ -31,6 +33,7 @@ Every game can have multiple rules that tell the client it is that game in parti
 
 For example, XML node for World of Warcraft would be:
 
+```xml
 <game>
 	<rule>
 		<proc>Wow.exe</proc>
@@ -43,6 +46,7 @@ For example, XML node for World of Warcraft would be:
 		<file>Launcher.exe</file>
 	</rule>
 </game>
+```
 
 ### ToDo:
 
