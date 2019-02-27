@@ -1,0 +1,33 @@
+﻿<Window x:Class="GameTrace.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GameTrace" WindowStartupLocation="CenterScreen" MaxHeight="200" MaxWidth="400">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="32"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="30" />
+            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="130" />
+            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="30" />
+        </Grid.ColumnDefinitions>
+
+        <Label Grid.Row="1" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">Logged In As:</Label>
+        <Label Name="uname" Content="{Binding Path=Logged}" Grid.Row="1" Grid.Column="2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"></Label>
+        <Button Content="Logout" Click="Logout_Click" Grid.Column="3" Grid.Row="1"></Button>
+
+        <Label Grid.Row="2" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">Playing:</Label>
+        <Label Name="gameName" Content="{Binding Path=Game}" x:FieldModifier="public" Grid.Row="2" Grid.Column="2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"></Label>
+
+        <Label Grid.Row="3" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">Since:</Label>
+        <Label Name="startDate" Content="{Binding Path=DateStart}" x:FieldModifier="public" Grid.Row="3" Grid.Column="2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"></Label>
+
+    </Grid>
+</Window>
