@@ -48,6 +48,22 @@ For example, XML node for World of Warcraft would be:
 </game>
 ```
 
-### ToDo:
+### Application Demonstration
+
+<hr/>
+
+![](demonstrationImages/login.png)
+
+*Client login form*
+
+<hr/>
+
+![](demonstrationImages/playing.png)
+
+*Client tracking user's playtime within a game*
+
+<hr/>
+
+### ToDo
 
 - [ ] Make the code look more bearable
