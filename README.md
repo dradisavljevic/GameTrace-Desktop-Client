@@ -22,14 +22,14 @@ Information about video game and processes is stored as XML node in the form of:
 
 Tags within this XML node are as follow:
 
- * **<proc> -** Represents the name of the process with it's extension, found in Task Manager. For example csgo.exe.
- * **<rule> -** Represents wrapper around certain set of rules that tell the client it is this game that is running.
- * **<file> -** If present, this rule tells the client to look for this specific file within the process directory.
- * **<no> -** If present, this rule tells the client that, if the stated file is present, this is not the game in question.
- * **<arg> -** If stated, rule tells the client to look within command line arguments of the process for a certain pattern.
- * **<absent> -** This tag tells the client if a certain pattern exists in command line arguments, this is not the game in question.
+ * **`<proc>` -** Represents the name of the process with it's extension, found in Task Manager. For example csgo.exe.
+ * **`<rule>` -** Represents wrapper around certain set of rules that tell the client it is this game that is running.
+ * **`<file>` -** If present, this rule tells the client to look for this specific file within the process directory.
+ * **`<no>` -** If present, this rule tells the client that, if the stated file is present, this is not the game in question.
+ * **`<arg>` -** If stated, rule tells the client to look within command line arguments of the process for a certain pattern.
+ * **`<absent>` -** This tag tells the client if a certain pattern exists in command line arguments, this is not the game in question.
 
-Every game can have multiple rules that tell the client it is that game in particular. Each rule must have atleast a process name and either one <file> or <no> tag.
+Every game can have multiple rules that tell the client it is that game in particular. Each rule must have atleast a process name and either one `<file>` or `<no>` tag.
 
 For example, XML node for World of Warcraft would be:
 
