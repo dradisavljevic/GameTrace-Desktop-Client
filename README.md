@@ -4,6 +4,8 @@
 
 Old Project that served as one part of my bachelor thesis. Idea was to create a Steam/Xfire-like desktop client that would keep track of time spent in games.
 
+Web Application is located within the [GameTrace Web Application](https://github.com/dradisavljevic/GameTrace-Web-App) repository.
+
 Client would search for a specific process name and then look for certain files within the directory from where the process started.
 
 Information about video game and processes is stored as XML node in the form of:

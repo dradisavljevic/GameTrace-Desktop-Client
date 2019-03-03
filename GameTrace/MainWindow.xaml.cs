@@ -229,6 +229,7 @@ namespace GameTrace
                         foreach (XmlNode nod in procesi)
                         {
                             string tekst = nod.InnerText.Split('.')[0];
+                            // TODO: Remove hideous try-catch
                             try
                             {
                                 if (proces.ToUpper().Equals(tekst.ToUpper()))
@@ -507,6 +508,7 @@ namespace GameTrace
                         foreach (XmlNode nod in procesi)
                         {
                             string tekst = nod.InnerText.Split('.')[0];
+                            // TODO: Remove hideous try-catch
                             try
                             {
                                 if (proces.ToUpper().Equals(tekst.ToUpper()))
@@ -797,6 +799,7 @@ namespace GameTrace
 
                 foreach (XmlNode nod in procesi)
                 {
+                    // TODO: Remove hideous try-catch
                     try
                     {
                         if ((nod.InnerText.ToUpper()).Equals(((string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]).ToUpper()))
@@ -1049,6 +1052,7 @@ namespace GameTrace
                                 foreach (XmlNode nod in procesi)
                                 {
                                     string tekst = nod.InnerText.Split('.')[0];
+                                    // TODO: Remove hideous try-catch
                                     try
                                     {
                                         if (proces.ToUpper().Equals(tekst.ToUpper()))
@@ -1188,6 +1192,7 @@ namespace GameTrace
 
         public EventWatcherAsync()
         {
+            // TODO: Remove hideous try-catch
             try
             {
                 string ComputerName = "localhost";
@@ -1211,7 +1216,7 @@ namespace GameTrace
             {
                 Debug.WriteLine("Exception {0} Trace {1}", e.Message, e.StackTrace);
             }
-
+            // TODO: Remove hideous try-catch
             try
             {
                 string ComputerName = "localhost";
