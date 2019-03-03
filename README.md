@@ -49,20 +49,23 @@ For example, XML node for World of Warcraft would be:
 ```
 
 ### Application Demonstration
+<br>
+<br>
+<p align="center">
 
-<hr/>
+<img src="demonstrationImages/login.png" />
+<br>
+<i>Client login form</i>
+<br>
+<br>
+<br>
+<img src="demonstrationImages/playing.png" />
+<br>
+<i>Client tracking user's playtime within a game</i>
 
-![](demonstrationImages/login.png)
-
-*Client login form*
-
-<hr/>
-
-![](demonstrationImages/playing.png)
-
-*Client tracking user's playtime within a game*
-
-<hr/>
+</p>
+<br>
+<br>
 
 ### ToDo
 
