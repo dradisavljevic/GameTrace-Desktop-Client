@@ -17,6 +17,9 @@ using System.Runtime.InteropServices;
 using Oracle.DataAccess.Client;
 using System.Windows.Threading;
 using System.ComponentModel;
+using System.Xml;
+using System.Threading;
+
 
 namespace GameTrace
 {
@@ -121,20 +124,14 @@ namespace GameTrace
 
         public void updateGameName(string newText)
         {
-
-
             game = newText;
             NotifyPropertyChanged("Game");
-
         }
 
         public void updateLoggedName(string newText)
         {
-
-
             logged = newText;
             NotifyPropertyChanged("Logged");
-
         }
 
         public void updateDate(string date)
@@ -143,8 +140,26 @@ namespace GameTrace
             NotifyPropertyChanged("DateStart");
         }
 
+        public string GetMainModuleFilepath(int processId)
+        {
+            string wmiQueryString = "SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE ProcessId = " + processId;
+            using (var searcher = new ManagementObjectSearcher(wmiQueryString))
+            {
+                using (var results = searcher.Get())
+                {
+                    ManagementObject mo = results.Cast<ManagementObject>().FirstOrDefault();
+                    if (mo != null)
+                    {
+                        return (string)mo["ExecutablePath"];
+                    }
+                }
+            }
+            return null;
+        }
+
         public MainWindow()
         {
+
 
             InitializeComponent();
             DataContext = this;
@@ -160,14 +175,11 @@ namespace GameTrace
 
             using (OracleCommand cmd = new OracleCommand(cmdtxt, conn))
             {
-
                 conn.Open();
 
                 // reader is IDisposable and should be closed
                 using (OracleDataReader dr = cmd.ExecuteReader())
                 {
-
-
                     while (dr.Read())
                     {
                         string thexml = (string)dr.GetValue(2);
@@ -182,43 +194,6 @@ namespace GameTrace
             ConsoleManager.Show();
             ConsoleManager.Toggle();
             EventWatcherAsync eventWatcher = new EventWatcherAsync();
-
-
-            Process[] processlist = Process.GetProcesses();
-
-            foreach (Process theprocess in processlist)
-            {
-                string proces = theprocess.ProcessName + ".exe";
-                foreach (KeyValuePair<int, string> entry in igre)
-                {
-                    if (proces.ToUpper().Equals(entry.Value.ToUpper()))
-                    {
-                        running = entry.Value;
-                        Debug.WriteLine("Caught!" + running);
-                        startSeconds = (int)System.DateTime.Now.Second;
-                        startMinutes = (int)System.DateTime.Now.Minute;
-                        startHours = (int)System.DateTime.Now.Hour;
-                        pocetak = (int)System.DateTime.Now.Day;
-                        this.gameName.Content = MainWindow.igreNaziv[entry.Key];
-                        this.startDate.Content = System.DateTime.Now.ToString();
-                        game = MainWindow.igreNaziv[entry.Key];
-                        gameId = entry.Key;
-                        String sql = "UPDATE GAME_USER SET PLAYING_GAME_ID = " + entry.Key + ", PLAYING= 1 WHERE UNAME= '" + MainWindow.logged.ToString() + "'";
-
-                        using (OracleCommand cmd = new OracleCommand(sql, conn))
-                        {
-                            conn.Open();
-
-                            // reader is IDisposable and should be closed
-                            cmd.ExecuteNonQuery();
-
-                        }
-
-                        conn.Close();
-                    }
-                }
-
-            }
 
             var s = new Login();
             s.ShowDialog();
@@ -238,10 +213,150 @@ namespace GameTrace
                 this.Show();
                 this.updateLoggedName(logged.ToString());
                 wind = this;
+                Process[] processlist = Process.GetProcesses();
+                foreach (Process theprocess in processlist)
+                {
+                    //   Debug.WriteLine("Process: {0} ID: {1}", theprocess.ProcessName, theprocess.Id);
+                    string proces = theprocess.ProcessName;
+
+                    foreach (KeyValuePair<int, string> entry in igre)
+                    {
+                        XmlDocument xmldoc = new XmlDocument();
+                        xmldoc.LoadXml(entry.Value);
+
+                        XmlNodeList procesi = xmldoc.GetElementsByTagName("proc");
+
+                        foreach (XmlNode nod in procesi)
+                        {
+                            string tekst = nod.InnerText.Split('.')[0];
+                            try
+                            {
+                                if (proces.ToUpper().Equals(tekst.ToUpper()))
+                                {
+                                    string putanja = GetMainModuleFilepath(theprocess.Id);
+                                    string[] runtimeIme = putanja.Split('\\');
+                                    string nazivProcesa = runtimeIme[runtimeIme.Length - 1];
+                                    if (nazivProcesa.Equals(nod.InnerText))
+                                    {
+                                        XmlNode roditelj = nod.ParentNode;
+                                        XmlNodeList srodnici = roditelj.ChildNodes;
+                                        Boolean nasao = false;
+                                        Boolean nijeNasao = true;
+                                        Boolean argument = false;
+                                        Boolean imaArg = false;
+
+                                        foreach (XmlNode srodnik in srodnici)
+                                        {
+                                            if (srodnik.Name.Equals("file") && nasao == false)
+                                            {
+                                                string fajl = putanja;
+
+                                                string dodatak = srodnik.InnerText;
+                                                fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                                while (dodatak.Substring(0, 2).Equals(".."))
+                                                {
+                                                    string[] fajlDeljen = fajl.Split('\\');
+                                                    string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                                    fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                                    dodatak = dodatak.Substring(3, dodatak.Length - 3);
+                                                }
+                                                fajl = fajl + dodatak;
+                                                if (System.IO.File.Exists(fajl))
+                                                {
+                                                    nasao = true;
+
+                                                }
+                                            }
+                                            if (srodnik.Name.Equals("no") && nijeNasao == true)
+                                            {
+                                                string fajl = putanja;
+                                                string dodatak = srodnik.InnerText;
+
+                                                fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                                while (dodatak.Substring(0, 2).Equals(".."))
+                                                {
+                                                    string[] fajlDeljen = fajl.Split('\\');
+                                                    string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                                    fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                                    dodatak = dodatak.Substring(3, dodatak.Length - 3);
+                                                }
+                                                fajl = fajl + dodatak;
+                                                if (System.IO.File.Exists(fajl))
+                                                {
+                                                    nijeNasao = false;
+                                                }
+                                            }
+
+                                            if (srodnik.Name.Equals("arg") && argument == false)
+                                            {
+                                                var commandLine = new StringBuilder(GetMainModuleFilepath(theprocess.Id));
+
+                                                commandLine.Append(" ");
+                                                using (var searcher = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + theprocess.Id))
+                                                {
+                                                    foreach (var @object in searcher.Get())
+                                                    {
+                                                        commandLine.Append(@object["CommandLine"]);
+                                                        commandLine.Append(" ");
+                                                    }
+                                                }
+                                                imaArg = true;
+
+                                                if (commandLine.ToString().Contains(srodnik.InnerText))
+                                                {
+                                                    argument = true;
+                                                }
+                                            }
+
+                                        }
+                                        if (imaArg == false)
+                                        {
+                                            argument = true;
+                                        }
+
+                                        if (nasao == true && nijeNasao == true && argument == true)
+                                        {
+                                            running = nod.InnerText;
+                                            Debug.WriteLine("Caught!" + running);
+
+                                            startSeconds = (int)System.DateTime.Now.Second;
+                                            startMinutes = (int)System.DateTime.Now.Minute;
+                                            startHours = (int)System.DateTime.Now.Hour;
+                                            pocetak = (int)System.DateTime.Now.Day;
+                                            MainWindow.wind.updateGameName(MainWindow.igreNaziv[entry.Key]);
+                                            MainWindow.wind.updateDate(System.DateTime.Now.ToString());
+                                            game = MainWindow.igreNaziv[entry.Key];
+                                            gameId = entry.Key;
+                                            String sql = "UPDATE GAME_USER SET PLAYING_GAME_ID = " + entry.Key + ", PLAYING= 1 WHERE UNAME= '" + MainWindow.logged.ToString() + "'";
+
+                                            using (OracleCommand cmd = new OracleCommand(sql, conn))
+                                            {
+                                                conn.Open();
+
+                                                // reader is IDisposable and should be closed
+                                                cmd.ExecuteNonQuery();
+
+                                            }
+
+                                            conn.Close();
+                                        }
+                                    }
+                                }
+
+                            }
+                            catch (NullReferenceException)
+                            {
+                            }
+                        }
+                    }
+
+                }
             }
 
 
         }
+
+
 
         private void Logout_Click(object sender, RoutedEventArgs e)
         {
@@ -310,9 +425,6 @@ namespace GameTrace
                                     else
                                     {
                                     }
-
-
-
                                     string connstr = "Data Source= XE;User Id=GameTrace;Password=ftn;";
                                     string cmdtxt =
                           @"INSERT INTO PLAYS VALUES ('" + MainWindow.logged + "', " + MainWindow.gameId + ", " + MainWindow.seconds + ", " + MainWindow.minutes + ", " + MainWindow.hours + ", " + MainWindow.days + ", DEFAULT, DEFAULT)";
@@ -382,32 +494,144 @@ namespace GameTrace
 
                 foreach (Process theprocess in processlist)
                 {
-                    string proces = theprocess.ProcessName + ".exe";
+                    //   Debug.WriteLine("Process: {0} ID: {1}", theprocess.ProcessName, theprocess.Id);
+                    string proces = theprocess.ProcessName;
+
                     foreach (KeyValuePair<int, string> entry in igre)
                     {
-                        if (proces.ToUpper().Equals(entry.Value.ToUpper()))
-                        {
-                            running = entry.Value;
-                            Debug.WriteLine("Caught!" + running);
-                            startSeconds = (int)System.DateTime.Now.Second;
-                            startMinutes = (int)System.DateTime.Now.Minute;
-                            startHours = (int)System.DateTime.Now.Hour;
-                            pocetak = (int)System.DateTime.Now.Day;
-                            String sql = "UPDATE GAME_USER SET PLAYING_GAME_ID = "+entry.Key+", PLAYING= 1 WHERE UNAME= '"+MainWindow.logged.ToString()+"'";
-                            OracleConnection conn = new OracleConnection();
-                            conn.ConnectionString = connstr;
-                            using (OracleCommand cmd = new OracleCommand(sql, conn))
-                            {
-                                conn.Open();
+                        XmlDocument xmldoc = new XmlDocument();
+                        xmldoc.LoadXml(entry.Value);
 
-                                // reader is IDisposable and should be closed
-                                cmd.ExecuteNonQuery();
+                        XmlNodeList procesi = xmldoc.GetElementsByTagName("proc");
+
+                        foreach (XmlNode nod in procesi)
+                        {
+                            string tekst = nod.InnerText.Split('.')[0];
+                            try
+                            {
+                                if (proces.ToUpper().Equals(tekst.ToUpper()))
+                                {
+                                    string putanja = GetMainModuleFilepath(theprocess.Id);
+                                    string[] runtimeIme = putanja.Split('\\');
+                                    string nazivProcesa = runtimeIme[runtimeIme.Length - 1];
+                                    if (nazivProcesa.Equals(nod.InnerText))
+                                    {
+                                        XmlNode roditelj = nod.ParentNode;
+                                        XmlNodeList srodnici = roditelj.ChildNodes;
+                                        Boolean nasao = false;
+                                        Boolean nijeNasao = true;
+                                        Boolean argument = false;
+                                        Boolean imaArg = false;
+
+                                        foreach (XmlNode srodnik in srodnici)
+                                        {
+                                            if (srodnik.Name.Equals("file") && nasao == false)
+                                            {
+                                                string fajl = putanja;
+
+                                                string dodatak = srodnik.InnerText;
+                                                fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                                while (dodatak.Substring(0, 2).Equals(".."))
+                                                {
+                                                    string[] fajlDeljen = fajl.Split('\\');
+                                                    string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                                    fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                                    dodatak = dodatak.Substring(3, dodatak.Length - 3);
+                                                }
+                                                fajl = fajl + dodatak;
+                                                if (System.IO.File.Exists(fajl))
+                                                {
+                                                    nasao = true;
+
+                                                }
+                                            }
+                                            if (srodnik.Name.Equals("no") && nijeNasao == true)
+                                            {
+                                                string fajl = putanja;
+                                                string dodatak = srodnik.InnerText;
+
+                                                fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                                while (dodatak.Substring(0, 2).Equals(".."))
+                                                {
+                                                    string[] fajlDeljen = fajl.Split('\\');
+                                                    string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                                    fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                                    dodatak = dodatak.Substring(3, dodatak.Length - 3);
+
+                                                }
+                                                fajl = fajl + dodatak;
+                                                if (System.IO.File.Exists(fajl))
+                                                {
+                                                    nijeNasao = false;
+                                                }
+                                            }
+
+                                            if (srodnik.Name.Equals("arg") && argument == false)
+                                            {
+                                                var commandLine = new StringBuilder(GetMainModuleFilepath(theprocess.Id));
+
+                                                commandLine.Append(" ");
+                                                using (var searcher = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + theprocess.Id))
+                                                {
+                                                    foreach (var @object in searcher.Get())
+                                                    {
+                                                        commandLine.Append(@object["CommandLine"]);
+                                                        commandLine.Append(" ");
+                                                    }
+                                                }
+                                                imaArg = true;
+
+                                                if (commandLine.ToString().Contains(srodnik.InnerText))
+                                                {
+                                                    argument = true;
+                                                }
+                                            }
+
+                                        }
+                                        if (imaArg == false)
+                                        {
+                                            argument = true;
+                                        }
+
+
+                                        if (nasao == true && nijeNasao == true && argument == true)
+                                        {
+                                            running = nod.InnerText;
+                                            Debug.WriteLine("Caught!" + running);
+
+                                            MainWindow.startSeconds = (int)System.DateTime.Now.Second;
+                                            MainWindow.startMinutes = (int)System.DateTime.Now.Minute;
+                                            MainWindow.startHours = (int)System.DateTime.Now.Hour;
+                                            MainWindow.pocetak = (int)System.DateTime.Now.Day;
+                                            MainWindow.game = MainWindow.igreNaziv[entry.Key];
+                                            MainWindow.gameId = entry.Key;
+                                            if (MainWindow.wind != null)
+                                            {
+                                                MainWindow.wind.updateGameName(MainWindow.igreNaziv[entry.Key]);
+                                                MainWindow.wind.updateDate(System.DateTime.Now.ToString());
+                                                String sql = "UPDATE GAME_USER SET PLAYING_GAME_ID = " + entry.Key + ", PLAYING= 1 WHERE UNAME= '" + MainWindow.logged.ToString() + "'";
+                                                OracleConnection conn = new OracleConnection();
+                                                conn.ConnectionString = connstr;
+                                                using (OracleCommand cmd = new OracleCommand(sql, conn))
+                                                {
+                                                    conn.Open();
+
+                                                    // reader is IDisposable and should be closed
+                                                    cmd.ExecuteNonQuery();
+                                                }
+
+                                                conn.Close();
+                                            }
+                                            game = MainWindow.igreNaziv[entry.Key];
+                                            gameId = entry.Key;
+                                        }
+                                    }
+                                }
 
                             }
-
-                            conn.Close();
-                            game = MainWindow.igreNaziv[entry.Key];
-                            gameId = entry.Key;
+                            catch (NullReferenceException)
+                            {
+                            }
                         }
                     }
 
@@ -501,7 +725,6 @@ namespace GameTrace
 
                                         // reader is IDisposable and should be closed
                                         cmd.ExecuteNonQuery();
-
                                     }
 
                                     conn.Close();
@@ -514,9 +737,7 @@ namespace GameTrace
 
                                         // reader is IDisposable and should be closed
                                         cmd.ExecuteNonQuery();
-
                                     }
-
                                     conn.Close();
 
                                     MainWindow.minutes = -1;
@@ -538,58 +759,179 @@ namespace GameTrace
         }
     }
 
+
+
     public class EventWatcherAsync
     {
+
+        public string GetMainModuleFilepath(int processId)
+        {
+            string wmiQueryString = "SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE ProcessId = " + processId;
+            using (var searcher = new ManagementObjectSearcher(wmiQueryString))
+            {
+                using (var results = searcher.Get())
+                {
+                    ManagementObject mo = results.Cast<ManagementObject>().FirstOrDefault();
+                    if (mo != null)
+                    {
+                        return (string)mo["ExecutablePath"];
+                    }
+                }
+            }
+            return null;
+        }
+
         private void WmiEventHandler(object sender, EventArrivedEventArgs e)
         {
-            
-                Debug.WriteLine("TargetInstance.Handle :    " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Handle"]);
-                Debug.WriteLine("TargetInstance.Name :      " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]);
 
-                foreach (KeyValuePair<int, string> entry in MainWindow.igre)
+            Debug.WriteLine("TargetInstance.Handle :    " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Handle"]);
+            Debug.WriteLine("TargetInstance.Name :      " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]);
+
+            foreach (KeyValuePair<int, string> entry in MainWindow.igre)
+            {
+
+                XmlDocument xmldoc = new XmlDocument();
+                xmldoc.LoadXml(entry.Value);
+
+                XmlNodeList procesi = xmldoc.GetElementsByTagName("proc");
+
+                foreach (XmlNode nod in procesi)
                 {
-                    if ((entry.Value.ToUpper()).Equals(((string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]).ToUpper()))
+                    try
                     {
-                        if (MainWindow.running == null)
+                        if ((nod.InnerText.ToUpper()).Equals(((string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]).ToUpper()))
                         {
-                            MainWindow.running = entry.Value;
-                            Debug.WriteLine("Caught!" + MainWindow.running);
-                            MainWindow.startSeconds = (int)System.DateTime.Now.Second;
-                            MainWindow.startMinutes = (int)System.DateTime.Now.Minute;
-                            MainWindow.startHours = (int)System.DateTime.Now.Hour;
-                            MainWindow.pocetak = (int)System.DateTime.Now.Day;
-                            MainWindow.game = MainWindow.igreNaziv[entry.Key];
-                            MainWindow.gameId = entry.Key;
-                            
-                            if (MainWindow.wind != null)
+                            string imeProcesa = (string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"];
+                            string samoIme = imeProcesa.Split('.')[0];
+                            Process[] processes = Process.GetProcessesByName(samoIme);
+                            Process theprocess = processes[0];
+                            string putanja = GetMainModuleFilepath(theprocess.Id);
+                            string[] runtimeIme = putanja.Split('\\');
+                            string nazivProcesa = runtimeIme[runtimeIme.Length - 1];
+                            if (MainWindow.running == null)
                             {
-                                MainWindow.wind.updateGameName(MainWindow.igreNaziv[entry.Key]);
-                                MainWindow.wind.updateDate(System.DateTime.Now.ToString());
-                                String sql = "UPDATE GAME_USER SET PLAYING_GAME_ID = " + entry.Key + ", PLAYING= 1 WHERE UNAME= '" + MainWindow.logged.ToString() + "'";
-                                OracleConnection conn = new OracleConnection();
-                                conn.ConnectionString = MainWindow.wind.connstr;
-                                using (OracleCommand cmd = new OracleCommand(sql, conn))
+                                XmlNode roditelj = nod.ParentNode;
+                                XmlNodeList srodnici = roditelj.ChildNodes;
+                                Boolean nasao = false;
+                                Boolean nijeNasao = true;
+                                Boolean argument = false;
+                                Boolean imaArg = false;
+
+                                foreach (XmlNode srodnik in srodnici)
                                 {
-                                    conn.Open();
+                                    if (srodnik.Name.Equals("file") && nasao == false)
+                                    {
+                                        string fajl = putanja;
 
-                                    // reader is IDisposable and should be closed
-                                    cmd.ExecuteNonQuery();
+                                        string dodatak = srodnik.InnerText;
+                                        fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                        while (dodatak.Substring(0, 2).Equals(".."))
+                                        {
+                                            string[] fajlDeljen = fajl.Split('\\');
+                                            string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                            fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                            dodatak = dodatak.Substring(3, dodatak.Length - 3);
+                                        }
+                                        fajl = fajl + dodatak;
+                                        if (System.IO.File.Exists(fajl))
+                                        {
+                                            nasao = true;
+                                        }
+                                    }
+                                    if (srodnik.Name.Equals("no") && nijeNasao == true)
+                                    {
+                                        string fajl = putanja;
+                                        string dodatak = srodnik.InnerText;
 
+                                        fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                        while (dodatak.Substring(0, 2).Equals(".."))
+                                        {
+                                            string[] fajlDeljen = fajl.Split('\\');
+                                            string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                            fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                            dodatak = dodatak.Substring(3, dodatak.Length - 3);
+
+                                        }
+                                        fajl = fajl + dodatak;
+
+                                        if (System.IO.File.Exists(fajl))
+                                        {
+                                            nijeNasao = false;
+
+                                        }
+                                    }
+
+                                    if (srodnik.Name.Equals("arg") && argument == false)
+                                    {
+                                        var commandLine = new StringBuilder(GetMainModuleFilepath(theprocess.Id));
+
+                                        commandLine.Append(" ");
+                                        using (var searcher = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + theprocess.Id))
+                                        {
+                                            foreach (var @object in searcher.Get())
+                                            {
+                                                commandLine.Append(@object["CommandLine"]);
+                                                commandLine.Append(" ");
+                                            }
+                                        }
+                                        imaArg = true;
+                                        if (commandLine.ToString().Contains(srodnik.InnerText))
+                                        {
+                                            argument = true;
+                                        }
+                                    }
                                 }
+                                if (imaArg == false)
+                                {
+                                    argument = true;
+                                }
+                                if (nasao == true && nijeNasao == true && argument == true)
+                                {
 
-                                conn.Close();
+                                    MainWindow.running = nod.InnerText;
+                                    Debug.WriteLine("Caught!" + MainWindow.running);
+
+                                    MainWindow.startSeconds = (int)System.DateTime.Now.Second;
+                                    MainWindow.startMinutes = (int)System.DateTime.Now.Minute;
+                                    MainWindow.startHours = (int)System.DateTime.Now.Hour;
+                                    MainWindow.pocetak = (int)System.DateTime.Now.Day;
+                                    MainWindow.game = MainWindow.igreNaziv[entry.Key];
+                                    MainWindow.gameId = entry.Key;
+
+                                    if (MainWindow.wind != null)
+                                    {
+                                        MainWindow.wind.updateGameName(MainWindow.igreNaziv[entry.Key]);
+                                        MainWindow.wind.updateDate(System.DateTime.Now.ToString());
+                                        String sql = "UPDATE GAME_USER SET PLAYING_GAME_ID = " + entry.Key + ", PLAYING= 1 WHERE UNAME= '" + MainWindow.logged.ToString() + "'";
+                                        OracleConnection conn = new OracleConnection();
+                                        conn.ConnectionString = MainWindow.wind.connstr;
+                                        using (OracleCommand cmd = new OracleCommand(sql, conn))
+                                        {
+                                            conn.Open();
+
+                                            // reader is IDisposable and should be closed
+                                            cmd.ExecuteNonQuery();
+                                        }
+
+                                        conn.Close();
+                                    }
+                                }
                             }
                         }
                     }
-                
+                    catch (Exception)
+                    {
+                    }
+                }
+
             }
-            
+
 
         }
 
         private void WmiEventHandlerExit(object sender, EventArrivedEventArgs e)
         {
-            if (MainWindow.logged != null )
+            if (MainWindow.logged != null)
             {
                 Debug.WriteLine("TargetInstance.Handle :    " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Handle"]);
                 Debug.WriteLine("TargetInstance.Name EXITED :      " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]);
@@ -599,7 +941,6 @@ namespace GameTrace
 
                     if ((MainWindow.running.ToUpper()).Equals(((string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]).ToUpper()))
                     {
-
                         MainWindow.running = null;
                         MainWindow.endSeconds = (int)System.DateTime.Now.Second;
                         MainWindow.endMinutes = (int)System.DateTime.Now.Minute;
@@ -655,6 +996,7 @@ namespace GameTrace
                         MainWindow.game = " ";
                         if (MainWindow.wind != null)
                         {
+
                             MainWindow.wind.updateGameName("Nothing");
                             MainWindow.wind.updateDate("N/A");
                         }
@@ -670,7 +1012,6 @@ namespace GameTrace
 
                             // reader is IDisposable and should be closed
                             cmd.ExecuteNonQuery();
-
                         }
 
                         conn.Close();
@@ -688,7 +1029,157 @@ namespace GameTrace
 
                         conn.Close();
 
-                        Debug.WriteLine("Hours: " + MainWindow.hours + " Minutes: " + MainWindow.minutes + " Seconds: " + MainWindow.seconds);
+                        Debug.WriteLine("Sati: " + MainWindow.hours + " Minuta: " + MainWindow.minutes + " Sekundi: " + MainWindow.seconds);
+
+
+                        Process[] processlist = Process.GetProcesses();
+
+                        foreach (Process theprocess in processlist)
+                        {
+                            //   Debug.WriteLine("Process: {0} ID: {1}", theprocess.ProcessName, theprocess.Id);
+
+                            string proces = theprocess.ProcessName;
+
+                            foreach (KeyValuePair<int, string> entry in MainWindow.igre)
+                            {
+                                XmlDocument xmldoc = new XmlDocument();
+                                xmldoc.LoadXml(entry.Value);
+
+                                XmlNodeList procesi = xmldoc.GetElementsByTagName("proc");
+                                foreach (XmlNode nod in procesi)
+                                {
+                                    string tekst = nod.InnerText.Split('.')[0];
+                                    try
+                                    {
+                                        if (proces.ToUpper().Equals(tekst.ToUpper()))
+                                        {
+
+                                            string putanja = GetMainModuleFilepath(theprocess.Id);
+                                            string[] runtimeIme = putanja.Split('\\');
+                                            string nazivProcesa = runtimeIme[runtimeIme.Length - 1];
+                                            if (nazivProcesa.Equals(nod.InnerText))
+                                            {
+
+                                                XmlNode roditelj = nod.ParentNode;
+                                                XmlNodeList srodnici = roditelj.ChildNodes;
+                                                Boolean nasao = false;
+                                                Boolean nijeNasao = true;
+                                                Boolean argument = false;
+                                                Boolean imaArg = false;
+
+                                                foreach (XmlNode srodnik in srodnici)
+                                                {
+                                                    if (srodnik.Name.Equals("file") && nasao == false)
+                                                    {
+                                                        string fajl = putanja;
+
+                                                        string dodatak = srodnik.InnerText;
+                                                        fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                                        while (dodatak.Substring(0, 2).Equals(".."))
+                                                        {
+                                                            string[] fajlDeljen = fajl.Split('\\');
+                                                            string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                                            fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                                            dodatak = dodatak.Substring(3, dodatak.Length - 3);
+                                                        }
+                                                        fajl = fajl + dodatak;
+                                                        if (System.IO.File.Exists(fajl))
+                                                        {
+                                                            nasao = true;
+
+                                                        }
+                                                    }
+                                                    if (srodnik.Name.Equals("no") && nijeNasao == true)
+                                                    {
+                                                        string fajl = putanja;
+                                                        string dodatak = srodnik.InnerText;
+
+                                                        fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
+                                                        while (dodatak.Substring(0, 2).Equals(".."))
+                                                        {
+                                                            string[] fajlDeljen = fajl.Split('\\');
+                                                            string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
+                                                            fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
+                                                            dodatak = dodatak.Substring(3, dodatak.Length - 3);
+
+                                                        }
+                                                        fajl = fajl + dodatak;
+                                                        if (System.IO.File.Exists(fajl))
+                                                        {
+                                                            nijeNasao = false;
+
+                                                        }
+                                                    }
+
+                                                    if (srodnik.Name.Equals("arg") && argument == false)
+                                                    {
+                                                        var commandLine = new StringBuilder(GetMainModuleFilepath(theprocess.Id));
+
+                                                        commandLine.Append(" ");
+                                                        using (var searcher = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + theprocess.Id))
+                                                        {
+                                                            foreach (var @object in searcher.Get())
+                                                            {
+                                                                commandLine.Append(@object["CommandLine"]);
+                                                                commandLine.Append(" ");
+                                                            }
+                                                        }
+                                                        imaArg = true;
+                                                        if (commandLine.ToString().Contains(srodnik.InnerText))
+                                                        {
+                                                            argument = true;
+                                                        }
+                                                    }
+
+                                                }
+                                                if (imaArg == false)
+                                                {
+                                                    argument = true;
+                                                }
+
+                                                if (nasao == true && nijeNasao == true && argument == true)
+                                                {
+
+                                                    MainWindow.running = nod.InnerText;
+                                                    Debug.WriteLine("Caught!" + MainWindow.running);
+
+                                                    MainWindow.startSeconds = (int)System.DateTime.Now.Second;
+                                                    MainWindow.startMinutes = (int)System.DateTime.Now.Minute;
+                                                    MainWindow.startHours = (int)System.DateTime.Now.Hour;
+                                                    MainWindow.pocetak = (int)System.DateTime.Now.Day;
+                                                    MainWindow.game = MainWindow.igreNaziv[entry.Key];
+                                                    MainWindow.gameId = entry.Key;
+                                                    if (MainWindow.wind != null)
+                                                    {
+                                                        MainWindow.wind.updateGameName(MainWindow.igreNaziv[entry.Key]);
+                                                        MainWindow.wind.updateDate(System.DateTime.Now.ToString());
+                                                        String Asql = "UPDATE GAME_USER SET PLAYING_GAME_ID = " + entry.Key + ", PLAYING= 1 WHERE UNAME= '" + MainWindow.logged.ToString() + "'";
+
+                                                        conn.ConnectionString = connstr;
+                                                        using (OracleCommand cmd = new OracleCommand(Asql, conn))
+                                                        {
+                                                            conn.Open();
+
+                                                            // reader is IDisposable and should be closed
+                                                            cmd.ExecuteNonQuery();
+
+                                                        }
+
+                                                        conn.Close();
+                                                    }
+                                                    MainWindow.game = MainWindow.igreNaziv[entry.Key];
+                                                    MainWindow.gameId = entry.Key;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch (NullReferenceException)
+                                    {
+                                    }
+                                }
+                            }
+
+                        }
 
                     }
                 }
@@ -746,6 +1237,7 @@ namespace GameTrace
             }
 
         }
+
 
     }
 }

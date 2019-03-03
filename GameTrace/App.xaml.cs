@@ -38,6 +38,10 @@ namespace GameTrace
             Console.WriteLine("handled. {0}", r);
             Console.WriteLine("Terminating " + e.IsTerminating.ToString());
 
+            Exception ex = (Exception)e.ExceptionObject;
+            Console.WriteLine("MyHandler caught : " + ex.Message);
+            Console.WriteLine("Runtime terminating: {0}", ex.StackTrace);
+
             Thread.CurrentThread.IsBackground = true;
             Thread.CurrentThread.Name = "Dead thread";
 

@@ -20,8 +20,8 @@
 
         <Label Grid.Row="1" Grid.Column="1" >Username:</Label>
         <Label Grid.Row="3" Grid.Column="1" >Password:</Label>
-        <TextBox Grid.Row="1" Grid.Column="2" Name="Ime"/>
-        <PasswordBox  Grid.Row="3" Grid.Column="2" Name="Pass"/>
+        <TextBox Grid.Row="1" Grid.Column="2" Name="Ime" VerticalContentAlignment="Center" Padding="0"/>
+        <PasswordBox  Grid.Row="3" Grid.Column="2" Name="Pass" VerticalContentAlignment="Center" Padding="0"/>
 
         <Grid Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2">
             <Grid.RowDefinitions>

@@ -19,6 +19,7 @@ using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
 using Oracle.DataAccess.Client;
+using System.Security.Cryptography;
 
 namespace GameTrace
 {
@@ -32,21 +33,13 @@ namespace GameTrace
 
         public Login()
         {
-
             InitializeComponent();
-
-
-
-
-
         }
 
-        
+
 
         private void Registruj_Click(object sender, RoutedEventArgs e)
         {
-            
-
             this.Close();
         }
 
@@ -54,8 +47,16 @@ namespace GameTrace
         {
             string user = Ime.Text;
             string pass = Pass.Password;
+            SHA256 sha256Hash = SHA256.Create();
+            byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(pass));
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                builder.Append(bytes[i].ToString("x2"));
+            }
+            string hashedPassword = builder.ToString();
             string cmdtxt =
-         @"select COUNT(*) from GT_USER WHERE UNAME = '" + user + "' AND PWORD = '" + pass+"'";
+         @"select COUNT(*) from GT_USER WHERE UNAME = '" + user + "' AND PWORD = '" + hashedPassword + "' AND USERUT=1";
 
             OracleConnection conn = new OracleConnection();
             conn.ConnectionString = connstr;
@@ -80,13 +81,12 @@ namespace GameTrace
                     while (dr.Read())
                     {
                         sadrzaj = Convert.ToInt32(dr.GetValue(0));
-                        Debug.WriteLine("PRB"+sadrzaj);
+                        Debug.WriteLine("PRB" + sadrzaj);
                     }
 
                 }
 
             }
-            Debug.WriteLine("PRBBB" + sadrzaj);
             if (sadrzaj > 0)
             {
                 MainWindow.logged = user;
@@ -95,17 +95,11 @@ namespace GameTrace
             }
             else
             {
-                MessageBoxResult result = MessageBox.Show("Username or password combination does not exist.", "Invalid Login Credentials", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                MessageBoxResult result = MessageBox.Show("Username and password combination does not exist.", "Invalid Login Credentials", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                 return;
             }
-            
-
-           
-
 
         }
-
-        
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {

@@ -94,5 +94,6 @@ namespace GameTrace
             Console.SetOut(TextWriter.Null);
             Console.SetError(TextWriter.Null);
         }
+
     } 
 }
