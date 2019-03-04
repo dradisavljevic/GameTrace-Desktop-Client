@@ -95,5 +95,5 @@ namespace GameTrace
             Console.SetError(TextWriter.Null);
         }
 
-    } 
+    }
 }
