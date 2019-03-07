@@ -35,31 +35,31 @@ namespace GameTrace
             Debug.WriteLine("TargetInstance.Handle :    " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Handle"]);
             Debug.WriteLine("TargetInstance.Name :      " + ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]);
 
-            foreach (KeyValuePair<int, string> entry in MainWindow.igre)
+            foreach (KeyValuePair<int, string> entry in MainWindow.games)
             {
 
                 XmlDocument xmldoc = new XmlDocument();
                 xmldoc.LoadXml(entry.Value);
 
-                XmlNodeList procesi = xmldoc.GetElementsByTagName("proc");
+                XmlNodeList detectionRuleProcesses = xmldoc.GetElementsByTagName("proc");
 
-                foreach (XmlNode nod in procesi)
+                foreach (XmlNode node in detectionRuleProcesses)
                 {
                     // TODO: Remove hideous try-catch
                     try
                     {
-                        if ((nod.InnerText.ToUpper()).Equals(((string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]).ToUpper()))
+                        if ((node.InnerText.ToUpper()).Equals(((string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"]).ToUpper()))
                         {
-                            string imeProcesa = (string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"];
-                            string samoIme = imeProcesa.Split('.')[0];
-                            Process[] processes = Process.GetProcessesByName(samoIme);
+                            string processNameExtension = (string)((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"];
+                            string processName = processNameExtension.Split('.')[0];
+                            Process[] processes = Process.GetProcessesByName(processName);
                             Process theprocess = processes[0];
-                            string putanja = GetMainModuleFilepath(theprocess.Id);
-                            string[] runtimeIme = putanja.Split('\\');
-                            string nazivProcesa = runtimeIme[runtimeIme.Length - 1];
-                            if (MainWindow.running == null)
+                            string fullPath = GetMainModuleFilepath(theprocess.Id);
+                            string[] runtimeName = fullPath.Split('\\');
+                            string runtimeProcessName = runtimeName[runtimeName.Length - 1];
+                            if (MainWindow.running == null && runtimeProcessName.Equals(node.InnerText))
                             {
-                                MainWindow.parseXML(nod, putanja, entry, theprocess);
+                                MainWindow.parseXML(node, fullPath, entry, theprocess);
                             }
                         }
                     }
@@ -95,12 +95,12 @@ namespace GameTrace
                             MainWindow.wind.updateDate("N/A");
                         }
 
-                        Debug.WriteLine("Sati: " + MainWindow.hours + " Minuta: " + MainWindow.minutes + " Sekundi: " + MainWindow.seconds);
+                        Debug.WriteLine("Hours: " + MainWindow.hours + " Minutes: " + MainWindow.minutes + " Seconds: " + MainWindow.seconds);
 
 
                         Process[] processlist = Process.GetProcesses();
 
-                        MainWindow.iterateProcessList(MainWindow.igre, processlist);
+                        MainWindow.iterateProcessList(MainWindow.games, processlist);
                     }
                 }
             }

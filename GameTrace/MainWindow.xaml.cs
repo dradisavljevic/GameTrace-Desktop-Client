@@ -39,8 +39,8 @@ namespace GameTrace
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
 
-        public static Dictionary<int, string> igre = new Dictionary<int, string>();
-        public static Dictionary<int, string> igreNaziv = new Dictionary<int, string>();
+        public static Dictionary<int, string> games = new Dictionary<int, string>();
+        public static Dictionary<int, string> gameNames = new Dictionary<int, string>();
         public static string logged = null;
         public static string running = null;
         public static int startSeconds = -1;
@@ -53,24 +53,24 @@ namespace GameTrace
         public static int endSeconds = -1;
         public static int endMinutes = -1;
         public static int endHours = -1;
-        public static int pocetak = -1;
-        public static int kraj = -1;
+        public static int startDay = -1;
+        public static int endDay = -1;
         public static string game;
         public static MainWindow wind = null;
         public static string _dateStart;
         public static int gameId;
 
 
-        public Dictionary<int, string> Igre
+        public Dictionary<int, string> Games
         {
-            get { return igre; }
-            set { igre = value; }
+            get { return games; }
+            set { games = value; }
         }
 
-        public Dictionary<int, string> IgreNaziv
+        public Dictionary<int, string> GameNames
         {
-            get { return igreNaziv; }
-            set { igreNaziv = value; }
+            get { return gameNames; }
+            set { gameNames = value; }
         }
 
         public string DateStart
@@ -128,31 +128,31 @@ namespace GameTrace
 
         public static void iterateProcessList(Dictionary<int, string> igre, Process[] processlist)
         {
-            foreach (Process theprocess in processlist)
+            foreach (Process startedProcess in processlist)
             {
-                string proces = theprocess.ProcessName;
+                string processName = startedProcess.ProcessName;
 
                 foreach (KeyValuePair<int, string> entry in igre)
                 {
                     XmlDocument xmldoc = new XmlDocument();
                     xmldoc.LoadXml(entry.Value);
 
-                    XmlNodeList procesi = xmldoc.GetElementsByTagName("proc");
+                    XmlNodeList detectionRuleProcesses = xmldoc.GetElementsByTagName("proc");
 
-                    foreach (XmlNode nod in procesi)
+                    foreach (XmlNode node in detectionRuleProcesses)
                     {
-                        string tekst = nod.InnerText.Split('.')[0];
+                        string nodeInnerProcessName = node.InnerText.Split('.')[0];
                         // TODO: Remove hideous try-catch
                         try
                         {
-                            if (proces.ToUpper().Equals(tekst.ToUpper()))
+                            if (processName.ToUpper().Equals(nodeInnerProcessName.ToUpper()))
                             {
-                                string putanja = EventWatcherAsync.GetMainModuleFilepath(theprocess.Id);
-                                string[] runtimeIme = putanja.Split('\\');
-                                string nazivProcesa = runtimeIme[runtimeIme.Length - 1];
-                                if (nazivProcesa.Equals(nod.InnerText))
+                                string mainModuleFilePath = EventWatcherAsync.GetMainModuleFilepath(startedProcess.Id);
+                                string[] runtimeName = mainModuleFilePath.Split('\\');
+                                string runtimeProcessName = runtimeName[runtimeName.Length - 1];
+                                if (runtimeProcessName.Equals(node.InnerText))
                                 {
-                                    parseXML(nod, putanja, entry, theprocess);
+                                    parseXML(node, mainModuleFilePath, entry, startedProcess);
                                 }
                             }
 
@@ -165,60 +165,60 @@ namespace GameTrace
             }
         }
 
-        public static void parseXML(XmlNode nod, string putanja, KeyValuePair<int, string> entry, Process theprocess)
+        public static void parseXML(XmlNode nod, string fullPath, KeyValuePair<int, string> entry, Process theprocess)
         {
 
-            XmlNode roditelj = nod.ParentNode;
-            XmlNodeList srodnici = roditelj.ChildNodes;
-            Boolean nasao = false;
-            Boolean nijeNasao = true;
+            XmlNode parent = nod.ParentNode;
+            XmlNodeList siblings = parent.ChildNodes;
+            Boolean foundFile = false;
+            Boolean fileAbsent = true;
             Boolean argument = false;
-            Boolean imaArg = false;
+            Boolean argumentPresent = false;
 
-            foreach (XmlNode srodnik in srodnici)
+            foreach (XmlNode sibling in siblings)
             {
-                if (srodnik.Name.Equals("file") && nasao == false)
+                if (sibling.Name.Equals("file") && foundFile == false)
                 {
-                    string fajl = putanja;
+                    string path = fullPath;
 
-                    string dodatak = srodnik.InnerText;
-                    fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
-                    while (dodatak.Substring(0, 2).Equals(".."))
+                    string subdirectories = sibling.InnerText;
+                    path = path.Substring(0, path.Length - nod.InnerText.Length);
+                    while (subdirectories.Substring(0, 2).Equals(".."))
                     {
-                        string[] fajlDeljen = fajl.Split('\\');
-                        string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
-                        fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
-                        dodatak = dodatak.Substring(3, dodatak.Length - 3);
+                        string[] splitPath = path.Split('\\');
+                        string lastDirectory = splitPath[splitPath.Length - 2];
+                        path = path.Substring(0, path.Length - lastDirectory.Length - 1);
+                        subdirectories = subdirectories.Substring(3, subdirectories.Length - 3);
                     }
-                    fajl = fajl + dodatak;
-                    if (System.IO.File.Exists(fajl))
+                    path = path + subdirectories;
+                    if (System.IO.File.Exists(path))
                     {
-                        nasao = true;
+                        foundFile = true;
 
                     }
                 }
-                if (srodnik.Name.Equals("no") && nijeNasao == true)
+                if (sibling.Name.Equals("no") && fileAbsent == true)
                 {
-                    string fajl = putanja;
-                    string dodatak = srodnik.InnerText;
+                    string path = fullPath;
+                    string subdirectories = sibling.InnerText;
 
-                    fajl = fajl.Substring(0, fajl.Length - nod.InnerText.Length);
-                    while (dodatak.Substring(0, 2).Equals(".."))
+                    path = path.Substring(0, path.Length - nod.InnerText.Length);
+                    while (subdirectories.Substring(0, 2).Equals(".."))
                     {
-                        string[] fajlDeljen = fajl.Split('\\');
-                        string direktorijumPoslednji = fajlDeljen[fajlDeljen.Length - 2];
-                        fajl = fajl.Substring(0, fajl.Length - direktorijumPoslednji.Length - 1);
-                        dodatak = dodatak.Substring(3, dodatak.Length - 3);
+                        string[] splitPath = path.Split('\\');
+                        string lastDirectory = splitPath[splitPath.Length - 2];
+                        path = path.Substring(0, path.Length - lastDirectory.Length - 1);
+                        subdirectories = subdirectories.Substring(3, subdirectories.Length - 3);
 
                     }
-                    fajl = fajl + dodatak;
-                    if (System.IO.File.Exists(fajl))
+                    path = path + subdirectories;
+                    if (System.IO.File.Exists(path))
                     {
-                        nijeNasao = false;
+                        fileAbsent = false;
                     }
                 }
 
-                if (srodnik.Name.Equals("arg") && argument == false)
+                if (sibling.Name.Equals("arg") && argument == false)
                 {
                     var commandLine = new StringBuilder(EventWatcherAsync.GetMainModuleFilepath(theprocess.Id));
 
@@ -231,22 +231,22 @@ namespace GameTrace
                             commandLine.Append(" ");
                         }
                     }
-                    imaArg = true;
+                    argumentPresent = true;
 
-                    if (commandLine.ToString().Contains(srodnik.InnerText))
+                    if (commandLine.ToString().Contains(sibling.InnerText))
                     {
                         argument = true;
                     }
                 }
 
             }
-            if (imaArg == false)
+            if (argumentPresent == false)
             {
                 argument = true;
             }
 
 
-            if (nasao == true && nijeNasao == true && argument == true)
+            if (foundFile == true && fileAbsent == true && argument == true)
             {
 
 
@@ -256,13 +256,13 @@ namespace GameTrace
                 MainWindow.startSeconds = (int)System.DateTime.Now.Second;
                 MainWindow.startMinutes = (int)System.DateTime.Now.Minute;
                 MainWindow.startHours = (int)System.DateTime.Now.Hour;
-                MainWindow.pocetak = (int)System.DateTime.Now.Day;
-                MainWindow.game = MainWindow.igreNaziv[entry.Key];
+                MainWindow.startDay = (int)System.DateTime.Now.Day;
+                MainWindow.game = MainWindow.gameNames[entry.Key];
                 MainWindow.gameId = entry.Key;
 
                 if (MainWindow.wind != null)
                 {
-                    MainWindow.wind.updateGameName(MainWindow.igreNaziv[entry.Key]);
+                    MainWindow.wind.updateGameName(MainWindow.gameNames[entry.Key]);
                     MainWindow.wind.updateDate(System.DateTime.Now.ToString());
                     String sql = QueryStrings.updateGameUserPlaying1 + entry.Key + QueryStrings.updateGameUserPlaying2 + MainWindow.logged.ToString() + "'";
                     OracleConnection conn = new OracleConnection();
@@ -278,7 +278,7 @@ namespace GameTrace
                     conn.Close();
                 }
 
-                MainWindow.game = MainWindow.igreNaziv[entry.Key];
+                MainWindow.game = MainWindow.gameNames[entry.Key];
                 MainWindow.gameId = entry.Key;
 
             }
@@ -289,8 +289,8 @@ namespace GameTrace
             MainWindow.endSeconds = (int)System.DateTime.Now.Second;
             MainWindow.endMinutes = (int)System.DateTime.Now.Minute;
             MainWindow.endHours = (int)System.DateTime.Now.Hour;
-            MainWindow.kraj = (int)System.DateTime.Now.Day;
-            if (MainWindow.kraj == MainWindow.pocetak)
+            MainWindow.endDay = (int)System.DateTime.Now.Day;
+            if (MainWindow.endDay == MainWindow.startDay)
             {
                 if (MainWindow.endSeconds < MainWindow.startSeconds)
                 {
@@ -311,9 +311,9 @@ namespace GameTrace
                     MainWindow.hours = MainWindow.hours - 24;
                 }
             }
-            else if (MainWindow.kraj > MainWindow.pocetak)
+            else if (MainWindow.endDay > MainWindow.startDay)
             {
-                MainWindow.endHours = MainWindow.endHours + (MainWindow.kraj - MainWindow.pocetak) * 24;
+                MainWindow.endHours = MainWindow.endHours + (MainWindow.endDay - MainWindow.startDay) * 24;
 
                 if (MainWindow.endSeconds < MainWindow.startSeconds)
                 {
@@ -417,8 +417,8 @@ namespace GameTrace
                     while (dr.Read())
                     {
                         string thexml = (string)dr.GetValue(2);
-                        igre.Add(Convert.ToInt32(dr.GetValue(0)), thexml);
-                        igreNaziv.Add(Convert.ToInt32(dr.GetValue(0)), (string)dr.GetValue(1));
+                        games.Add(Convert.ToInt32(dr.GetValue(0)), thexml);
+                        gameNames.Add(Convert.ToInt32(dr.GetValue(0)), (string)dr.GetValue(1));
                     }
                 }
             }
@@ -447,7 +447,7 @@ namespace GameTrace
                 wind = this;
                 Process[] processlist = Process.GetProcesses();
 
-                iterateProcessList(igre, processlist);
+                iterateProcessList(games, processlist);
             }
         }
 
@@ -478,7 +478,7 @@ namespace GameTrace
             {
 
                 Process[] processlist = Process.GetProcesses();
-                iterateProcessList(igre, processlist);
+                iterateProcessList(games, processlist);
 
 
                 this.Show();

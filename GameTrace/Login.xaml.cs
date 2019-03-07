@@ -37,14 +37,14 @@ namespace GameTrace
 
 
 
-        private void Registruj_Click(object sender, RoutedEventArgs e)
+        private void Register_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
         }
 
-        private void Uloguj_Click(object sender, RoutedEventArgs e)
+        private void LogIn_Click(object sender, RoutedEventArgs e)
         {
-            string user = Ime.Text;
+            string user = Uname.Text;
             string pass = Pass.Password;
             SHA256 sha256Hash = SHA256.Create();
             byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(pass));
@@ -79,7 +79,6 @@ namespace GameTrace
                     while (dr.Read())
                     {
                         sadrzaj = Convert.ToInt32(dr.GetValue(0));
-                        Debug.WriteLine("PRB" + sadrzaj);
                     }
 
                 }
