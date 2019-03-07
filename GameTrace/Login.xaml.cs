@@ -28,7 +28,6 @@ namespace GameTrace
     /// </summary>
     public partial class Login : Window
     {
-        public string connstr = "Data Source= XE;User Id=GameTrace;Password=ftn;";
         public int sadrzaj = 0;
 
         public Login()
@@ -55,11 +54,10 @@ namespace GameTrace
                 builder.Append(bytes[i].ToString("x2"));
             }
             string hashedPassword = builder.ToString();
-            string cmdtxt =
-         @"select COUNT(*) from GT_USER WHERE UNAME = '" + user + "' AND PWORD = '" + hashedPassword + "' AND USERUT=1";
+            string cmdtxt = QueryStrings.selectUserUname + user + QueryStrings.selectUserPword + hashedPassword + QueryStrings.selectUserUtype;
 
             OracleConnection conn = new OracleConnection();
-            conn.ConnectionString = connstr;
+            conn.ConnectionString = QueryStrings.connstr;
             using (OracleCommand cmd = new OracleCommand(cmdtxt, conn))
             {
                 try
